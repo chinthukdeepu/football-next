@@ -419,10 +419,6 @@ async function downloadPDF(){
         const blocks=[page.querySelector('.header'),...page.querySelectorAll('.sec')].filter(Boolean);
         let currentY=0;
         for(let index=0;index<blocks.length;index++){
-          if(index===3&&currentY>0){
-            pdf.addPage();
-            currentY=0;
-          }
           const block=blocks[index];
           const canvas=await html2canvas(block,{
             scale:attempt.scale,

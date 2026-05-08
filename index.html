@@ -1,0 +1,1776 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Exact Session Plan PDF Generator</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+body{font-family:Inter,Arial,sans-serif;background:#eef3f1;margin:0;padding:24px;color:#172521}
+.wrapper{display:grid;grid-template-columns:minmax(240px,300px) minmax(0,1fr);gap:20px;max-width:1180px;margin:auto;align-items:start}
+.panel,.page{background:#fff;border-radius:16px;box-shadow:0 12px 32px rgba(15,35,30,.10)}
+.panel{padding:22px;height:fit-content;border:1px solid #dce7e3}
+.panel h2{margin:0 0 16px;color:#005c4b;font-size:20px}
+.panel p{margin:0 0 14px;color:#47625b;line-height:1.5;font-size:14px}
+.form-section{padding:14px 0;border-top:1px solid #e5ece9}
+.form-section:first-of-type{border-top:0;padding-top:0}
+.form-section-title{margin:0 0 8px;color:#005c4b;font-size:13px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}
+.field-label{display:block;margin:8px 0 4px;color:#47625b;font-size:12px;font-weight:700}
+.panel input,.panel textarea{width:100%;box-sizing:border-box;padding:10px 12px;margin:6px 0 12px;border:1px solid #cbd8d3;border-radius:10px;background:#fbfdfc;font:inherit;transition:border-color .15s,box-shadow .15s}
+.panel input:focus,.panel textarea:focus{outline:none;border-color:#005c4b;box-shadow:0 0 0 3px rgba(0,92,75,.12)}
+.panel button{width:100%;padding:13px 14px;margin-top:10px;background:#005c4b;color:#fff;border:0;border-radius:10px;font-weight:700;cursor:pointer;transition:background .15s,transform .15s}
+.panel button:hover{background:#00483b}
+.panel button:active{transform:translateY(1px)}
+[contenteditable="true"]{outline:none;border-radius:6px}
+[contenteditable="true"]:focus{box-shadow:0 0 0 3px rgba(0,92,75,.18);background:rgba(255,255,255,.18)}
+[contenteditable="true"][data-placeholder].is-empty:before{content:attr(data-placeholder);color:rgba(107,114,128,.65);pointer-events:none}
+.page.export-mode [contenteditable="true"][data-placeholder].is-empty:before{content:''}
+.page{width:min(794px,100%);min-height:1123px;padding:0;overflow:hidden}
+.header{background:linear-gradient(135deg,#005c4b,#05745f);color:#fff;padding:24px 30px}
+.header-top{display:grid;grid-template-columns:78px 1fr;gap:14px;align-items:start}
+.club-logo{width:78px;height:78px;object-fit:contain;display:block}
+/* .header-kicker{display:inline-flex;align-items:center;margin-bottom:9px;padding:5px 9px;border:1px solid rgba(255,255,255,.25);border-radius:999px;background:rgba(255,255,255,.12);font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase} */
+.header h1{margin:0;font-size:30px;line-height:1.1;letter-spacing:.25px;text-transform:uppercase}
+.meta{display:grid;grid-template-columns:repeat(3,1fr);margin-top:18px;padding-top:14px;border-top:1px solid rgba(255,255,255,.22);font-size:13px;gap:10px 18px;opacity:.96}
+.meta-card{display:block;min-width:0}
+.meta-label{display:block;margin-bottom:2px;font-size:9px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;opacity:.65}
+.meta-value{display:block;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sec{display:grid;grid-template-columns:1fr 370px;gap:24px;padding:22px 30px;border-bottom:1px solid #e5ece9}
+.sec-title{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 8px}
+.sec-title-main{color:#005c4b;font-size:20px;line-height:1.15;font-weight:800;letter-spacing:-.1px;text-transform:uppercase}
+.badge{display:inline-block;background:#d7ece6;color:#005c4b;padding:4px 8px;border-radius:999px;font-size:12px;font-weight:700;white-space:nowrap}
+.subtitle{font-size:15px;font-weight:800;margin:7px 0 8px;color:#111827}
+.txt{white-space:pre-line;line-height:1.45;font-size:14px;color:#1f2937}
+.pitch-wrap{display:grid;grid-template-columns:1fr auto;grid-template-rows:1fr auto;gap:8px;width:370px;max-width:100%;position:relative;align-items:start}
+.pitch-wrap > .pitch{grid-row:1;grid-column:1}
+.pitch-wrap > .pitch-toolbar-right{grid-row:1;grid-column:2}
+.pitch-wrap > .pitch-toolbar-bottom{grid-row:2;grid-column:1 / -1}
+.pitch{background:linear-gradient(135deg,rgba(255,255,255,.10),rgba(255,255,255,0) 42%),repeating-linear-gradient(90deg,#3d9f43 0,#3d9f43 26px,#46aa4a 26px,#46aa4a 52px);border-radius:18px;width:100%;aspect-ratio:1/1;position:relative;overflow:hidden;touch-action:none;box-shadow:inset 0 0 0 1px rgba(255,255,255,.08)}
+.pitch:before{content:'';position:absolute;inset:4%;border:2px solid #fff;pointer-events:none;border-radius:2px}
+.pitch-heading{position:absolute;top:1.6%;left:50%;transform:translateX(-50%);max-width:84%;padding:3px 11px;background:rgba(0,0,0,.30);color:#fff;font:600 10px/1.3 Inter,Arial,sans-serif;letter-spacing:.08em;text-transform:uppercase;text-align:center;border-radius:999px;z-index:3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;outline:none;cursor:text;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);transition:background .12s,box-shadow .12s}
+.pitch-heading:hover{background:rgba(0,0,0,.42)}
+.pitch-heading:focus{background:rgba(0,0,0,.55);box-shadow:0 0 0 1.5px rgba(255,255,255,.7)}
+.pitch-heading[data-placeholder].is-empty:before{color:rgba(255,255,255,.6)}
+.item{position:absolute;cursor:grab;user-select:none;touch-action:none;transform:translate(-50%,-50%);z-index:2}
+.item.dragging{cursor:grabbing}
+/* Items use percentage sizing so visuals scale 1:1 with the pitch in any context. */
+.item.player1,.item.player2{width:6.5%;height:6.5%;min-width:14px;min-height:14px;max-width:48px;max-height:48px;border-radius:50%;border:2px solid #fff;box-sizing:border-box;box-shadow:0 1px 3px rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;color:#fff}
+.item.player1{background:radial-gradient(circle at 35% 30%,#3b82f6,#1e3a8a 75%)}
+.item.player2{background:radial-gradient(circle at 35% 30%,#ef4444,#991b1b 75%)}
+.item.cone{width:5.5%;height:5.5%;min-width:12px;min-height:12px;max-width:42px;max-height:42px;filter:drop-shadow(0 1px 1.5px rgba(0,0,0,.5))}
+.item.cone svg{display:block;width:100%;height:100%}
+.item.ball{font-size:15px;line-height:1;filter:drop-shadow(0 1px 2px rgba(0,0,0,.45));display:flex;align-items:center;justify-content:center}
+.pitch-wrap.in-modal .item.ball{font-size:26px}
+@media (max-width:820px){.item.ball{font-size:18px}.pitch-wrap.in-modal .item.ball{font-size:24px}}
+.item.square,.item.squareLarge{background:rgba(255,255,255,.08);box-sizing:border-box;border-radius:3px;box-shadow:0 1px 3px rgba(0,0,0,.25)}
+.item.square.zone-solid,.item.squareLarge.zone-solid{border:2px solid #fff}
+.item.square.zone-dashed,.item.squareLarge.zone-dashed{border:2px dashed #fff}
+.item.square.selected,.item.squareLarge.selected{background:rgba(255,255,255,.18);outline:2px solid #fbbf24;outline-offset:2px}
+.item.square .resize-handle,.item.squareLarge .resize-handle{display:none;position:absolute;right:-8px;bottom:-8px;width:14px;height:14px;border-radius:50%;background:#fbbf24;border:1.5px solid #fff;cursor:nwse-resize;box-shadow:0 1px 2px rgba(0,0,0,.4);touch-action:none}
+.item.square.selected .resize-handle,.item.squareLarge.selected .resize-handle{display:block}
+.item.player1.selected,.item.player2.selected,.item.cone.selected,.item.ball.selected{outline:2px solid #fbbf24;outline-offset:3px;border-radius:50%}
+
+/* Arrows: viewBox-based, non-scaling stroke so visual width is constant */
+.arrow-layer{position:absolute;inset:0;z-index:1;overflow:visible;touch-action:none}
+.arrow-group{cursor:grab;touch-action:none}
+.arrow-group.dragging{cursor:grabbing}
+.arrow-hit{fill:none;stroke:transparent;stroke-width:34;stroke-linecap:round;stroke-linejoin:round;pointer-events:stroke;vector-effect:non-scaling-stroke}
+.arrow-path{fill:none;stroke:#fff;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round;filter:drop-shadow(0 1px 1.6px rgba(0,0,0,.6));vector-effect:non-scaling-stroke}
+.arrow-corner{fill:#fff;stroke:#fff;stroke-width:1;stroke-linejoin:round;filter:drop-shadow(0 1px 1.6px rgba(0,0,0,.6))}
+.arrow-corner.no-head{display:none}
+.arrow-handle{fill:#fff;stroke:rgba(0,0,0,.55);stroke-width:1.2;r:20;cursor:pointer;opacity:0;vector-effect:non-scaling-stroke}
+.arrow-mid-handle{fill:#fbbf24;stroke:rgba(0,0,0,.55);stroke-width:1.2;r:20;cursor:pointer;opacity:0;vector-effect:non-scaling-stroke}
+.pitch-wrap.in-modal .arrow-handle,.pitch-wrap.in-modal .arrow-mid-handle{r:18}
+.arrow-group.selected .arrow-handle,.arrow-group.selected .arrow-mid-handle{opacity:1}
+.arrow-group.selected .arrow-path{stroke:#fef3c7}
+.arrow-group.selected .arrow-corner{fill:#fef3c7;stroke:#fef3c7}
+.arrow-preview{pointer-events:none;opacity:.85}
+
+.pitch.placing{cursor:crosshair}
+.pitch.deleting{cursor:not-allowed}
+.pitch.deleting .item,.pitch.deleting .arrow-group{cursor:not-allowed}
+.pitch.snap-on:after{content:'';position:absolute;inset:4%;pointer-events:none;background-image:linear-gradient(to right,rgba(255,255,255,.13) 1px,transparent 1px),linear-gradient(to bottom,rgba(255,255,255,.13) 1px,transparent 1px);background-size:5% 5%;z-index:0}
+
+/* Toolbar – right column = utility, bottom row = drawing palette */
+.pitch-toolbar{display:flex;gap:5px;padding:0}
+.pitch-toolbar-right{flex-direction:column;align-items:stretch}
+.pitch-toolbar-bottom{flex-direction:row;flex-wrap:wrap;gap:5px;justify-content:center;align-items:center;padding:6px 8px;background:rgba(255,255,255,.65);border:1px solid #dce7e3;border-radius:10px;backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)}
+.pitch-toolbar-top{display:flex;flex-direction:row;gap:5px;justify-content:space-between}
+.pitch-tool{position:relative;width:32px;height:30px;border:1px solid #cfd8dc;border-radius:7px;background:#fff;font-size:14px;line-height:1;cursor:pointer;padding:0;color:#0f3a30;display:flex;align-items:center;justify-content:center;transition:background .12s,border-color .12s;touch-action:manipulation}
+.pitch-tool:hover{background:#f1f5f3;border-color:#94a3a3}
+.pitch-tool.active{background:#005c4b;color:#fff;border-color:#005c4b}
+.pitch-tool svg{display:block;width:18px;height:18px;color:currentColor}
+.pitch-tool.lock-toggle{font-size:14px;font-weight:700;box-shadow:0 1px 2px rgba(0,0,0,.12)}
+.pitch-tool.lock-toggle:not(.active){background:#fef3c7;color:#92400e;border-color:#d97706}
+.pitch-tool.lock-toggle.active{background:#0f766e;color:#fff;border-color:#0f766e}
+.pitch-tool.edit-btn{background:linear-gradient(180deg,#10b981,#0f766e);color:#fff;border-color:#0f766e}
+.pitch-tool.edit-btn:hover{background:#0f766e}
+.pitch-tool.snap-toggle.active{background:#fbbf24;color:#111827;border-color:#d97706}
+.pitch-tool.pdf-toggle:not(.active){background:#ecfdf5;color:#047857;border-color:#10b981}
+.pitch-tool.pdf-toggle.active{background:#fef2f2;color:#b91c1c;border-color:#dc2626}
+.pitch-tool.disabled{opacity:.35;cursor:not-allowed}
+.pitch-skip-badge{position:absolute;bottom:5%;left:50%;transform:translateX(-50%);background:rgba(220,38,38,.9);color:#fff;font:700 10px/1.2 Inter,Arial,sans-serif;padding:5px 10px;border-radius:6px;z-index:4;letter-spacing:.06em;text-transform:uppercase;pointer-events:none;box-shadow:0 2px 8px rgba(0,0,0,.35)}
+.pitch-wrap[data-pdf-hidden="true"] .pitch{outline:3px dashed rgba(220,38,38,.55);outline-offset:-3px}
+.pitch-tool.has-popover:after{content:'';position:absolute;right:3px;bottom:3px;width:0;height:0;border:3px solid transparent;border-right:3px solid currentColor;border-bottom:3px solid currentColor;opacity:.55}
+.tool-sep{height:1px;background:#cfd8dc;border:0;border-radius:0;margin:3px 0;align-self:stretch}
+.tool-sep.tool-sep-vert{width:1px;height:24px;margin:0 4px;align-self:center}
+
+/* Popover for zone solid/dashed */
+.tool-popover{position:absolute;z-index:1100;background:#fff;border:1px solid #cbd8d3;border-radius:10px;padding:6px;box-shadow:0 12px 28px rgba(0,0,0,.20);display:flex;gap:5px;animation:popfade .14s ease}
+@keyframes popfade{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
+.tool-popover-item{display:flex;align-items:center;gap:8px;padding:6px 10px;border:1px solid #e2e8e5;border-radius:8px;background:#fff;color:#0f3a30;font:600 12px/1 Inter,Arial,sans-serif;cursor:pointer;min-height:38px}
+.tool-popover-item:hover{background:#ecfdf5;border-color:#10b981}
+.tool-popover-item svg{width:22px;height:22px}
+.tool-popover-label{white-space:nowrap}
+
+/* Modal */
+.diagram-modal-overlay{position:fixed;inset:0;background:rgba(8,18,16,.78);display:none;align-items:center;justify-content:center;z-index:1000;padding:12px}
+.diagram-modal-overlay.open{display:flex}
+.diagram-modal{background:#0f3a30;border-radius:16px;padding:14px 16px 16px;box-shadow:0 30px 80px rgba(0,0,0,.5);display:flex;flex-direction:column;gap:10px;max-width:96vw;max-height:96vh;color:#fff}
+.diagram-modal-header{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.diagram-modal-title{font:700 15px/1.2 Inter,Arial,sans-serif;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.diagram-modal-close{padding:8px 16px;background:#fff;color:#0f3a30;border:0;border-radius:8px;cursor:pointer;font-weight:700;min-height:38px;font-size:14px}
+.diagram-modal-close:hover{background:#e5ece9}
+.diagram-modal-help{font-size:11px;opacity:.85;text-align:center;line-height:1.4}
+.diagram-modal-host{display:flex;justify-content:center;align-items:center;flex:1;min-height:0}
+body.modal-open{overflow:hidden}
+.pitch-wrap-placeholder{visibility:hidden}
+
+/* Pitch-wrap in modal: bigger pitch + bigger toolbar buttons */
+.diagram-modal{overflow:auto}
+.pitch-wrap.in-modal{width:auto!important;max-width:none;display:grid!important;grid-template-columns:auto auto;grid-template-rows:auto auto;gap:12px;align-items:start}
+.pitch-wrap.in-modal > .pitch{grid-row:1;grid-column:1;width:min(64vh,64vw,620px)!important;height:min(64vh,64vw,620px)!important;aspect-ratio:auto!important;border-radius:14px}
+.pitch-wrap.in-modal > .pitch-toolbar-right{grid-row:1;grid-column:2}
+.pitch-wrap.in-modal > .pitch-toolbar-bottom{grid-row:2;grid-column:1 / -1}
+.pitch-wrap.in-modal .pitch-tool{width:38px;height:36px;font-size:16px}
+.pitch-wrap.in-modal .pitch-tool svg{width:22px;height:22px}
+.pitch-wrap.in-modal .pitch-heading{font-size:11px;padding:4px 14px;top:1.8%}
+.pitch-wrap.in-modal .resize-handle{width:18px!important;height:18px!important;right:-10px!important;bottom:-10px!important}
+.pitch-wrap.in-modal .pitch-toolbar-bottom{padding:8px 10px}
+/* Edit button is for opening the modal — hide it when already in it */
+.pitch-wrap.in-modal .pitch-tool.edit-btn{display:none}
+.page.export-mode{width:794px!important;min-height:1123px!important;border-radius:0;box-shadow:none}
+.page.export-mode .header{padding:16px 22px!important}
+.page.export-mode .header h1{font-size:26px!important;line-height:1.08!important}
+.page.export-mode .meta{display:grid!important;grid-template-columns:repeat(3,1fr)!important;font-size:12px!important;gap:6px 12px!important;margin-top:12px!important;padding-top:10px!important}
+.page.export-mode .sec{grid-template-columns:1fr 370px!important;padding:14px 22px!important;gap:14px!important}
+.page.export-mode .sec-title{margin:0 0 5px!important}
+.page.export-mode .sec-title-main{font-size:17px!important}
+.page.export-mode .subtitle{font-size:14px!important;margin:5px 0 5px!important}
+.page.export-mode .txt{font-size:13px!important;line-height:1.32!important}
+.page.export-mode .badge{font-size:11px!important;padding:3px 7px!important}
+.page.export-mode .pitch-wrap{width:370px!important}
+.export-mode .pitch-toolbar{display:none}
+.export-mode .pitch-wrap{gap:0}
+.export-mode .arrow-handle,.export-mode .arrow-mid-handle{display:none}
+/* html2canvas can't render backdrop-filter / drop-shadow filter cleanly and
+   falls back to a tainted SVG foreignObject. Disable visual effects that
+   trigger that fallback so the export uses the fast canvas path. */
+.export-mode .pitch-heading{backdrop-filter:none!important;-webkit-backdrop-filter:none!important;background:rgba(0,0,0,.40);box-shadow:none!important}
+.export-mode .pitch-heading.is-empty{display:none}
+.export-mode .arrow-path,.export-mode .arrow-corner{filter:none!important}
+.export-mode .item.ball,.export-mode .item.cone{filter:none!important}
+.export-mode .item.player1,.export-mode .item.player2{box-shadow:none!important}
+.export-mode .pitch{box-shadow:none!important}
+.export-mode .pitch.snap-on:after{display:none}
+.export-mode .pitch-skip-badge{display:none}
+/* Per-diagram PDF skip: drop the diagram and let the section text expand */
+.page.export-mode .sec.sec-no-pitch{grid-template-columns:1fr!important}
+.export-mode .sec.sec-no-pitch .pitch-wrap{display:none!important}
+@media (max-width:1220px){.wrapper{grid-template-columns:1fr}.panel{order:2}.page{order:1}}
+@media (max-width:820px){
+  body{padding:12px}
+  .sec{grid-template-columns:1fr;padding:22px}
+  .header{padding:22px}
+  .header-top{grid-template-columns:64px 1fr;gap:10px}
+  .club-logo{width:64px;height:64px}
+  .header h1{font-size:26px}
+  .meta{grid-template-columns:repeat(2,1fr);font-size:13px;gap:8px 12px}
+
+  /* Pitch full-width, toolbars stack: right column moves below pitch as a wrap-row,
+     bottom palette stays below that. Both are touch-friendly. */
+  .pitch-wrap{display:grid!important;grid-template-columns:1fr;grid-template-rows:auto auto auto;gap:8px;width:100%;max-width:560px;margin:0 auto}
+  .pitch-wrap > .pitch{grid-row:1;grid-column:1}
+  .pitch-wrap > .pitch-toolbar-right{grid-row:2;grid-column:1;flex-direction:row;flex-wrap:wrap;justify-content:center;padding:6px 8px;background:rgba(255,255,255,.7);border:1px solid #dce7e3;border-radius:10px}
+  .pitch-wrap > .pitch-toolbar-bottom{grid-row:3;grid-column:1}
+  .pitch-toolbar-top{display:flex;flex:1 1 100%;justify-content:center;gap:10px;margin-bottom:2px}
+  .pitch-toolbar-top .pitch-tool{flex:1 1 auto;max-width:170px;height:42px}
+  .pitch-tool{width:42px;height:42px;font-size:16px}
+  .pitch-tool svg{width:22px;height:22px}
+  .pitch-toolbar-right .tool-sep{flex:0 0 100%;height:1px;margin:2px 0}
+  .pitch-toolbar-bottom{gap:6px}
+  .tool-sep.tool-sep-vert{height:30px}
+
+  /* Modal: fullscreen, same stacked toolbar arrangement */
+  .diagram-modal{padding:10px;max-width:100vw;max-height:100vh;width:100vw;height:100vh;border-radius:0;gap:8px}
+  .diagram-modal-host{flex:1;min-height:0;align-items:flex-start}
+  .pitch-wrap.in-modal{display:grid!important;grid-template-columns:1fr;grid-template-rows:auto auto auto;gap:8px;width:100%!important;max-width:100%}
+  .pitch-wrap.in-modal > .pitch{grid-row:1;grid-column:1;width:min(95vw,52vh)!important;height:min(95vw,52vh)!important;margin:0 auto}
+  .pitch-wrap.in-modal > .pitch-toolbar-right{grid-row:2;grid-column:1;flex-direction:row;flex-wrap:wrap;justify-content:center;background:rgba(255,255,255,.85);padding:6px 10px;border-radius:10px}
+  .pitch-wrap.in-modal > .pitch-toolbar-bottom{grid-row:3;grid-column:1}
+  .pitch-wrap.in-modal .pitch-tool{width:44px;height:44px}
+  .pitch-wrap.in-modal .pitch-tool svg{width:24px;height:24px}
+  /* Touch-friendly handles */
+  .resize-handle{width:18px!important;height:18px!important;right:-10px!important;bottom:-10px!important}
+}
+</style>
+</head>
+<body>
+<div class='wrapper'>
+<div class='panel'>
+<h2>Inline Editor</h2>
+<p>Click directly on any title, detail, section text, minute badge, or diagram title to edit it in place.</p>
+<p>Use the edit button on each diagram to open the full-screen diagram editor.</p>
+<button onclick='downloadPDF()'>Generate PDF</button>
+</div>
+<div id='pdf'>
+<div class='page'>
+<div class='header'><div class='header-top'><img class='club-logo' src='logo.png' alt='Club logo' crossorigin='anonymous'><div><h1 id='pvTitle' contenteditable='true'>SESSION PLAN: PASSING & RECEIVING</h1></div></div><div class='meta'><div class='meta-card'><span class='meta-label'>Coach Name</span><span class='meta-value' contenteditable='true'>Coach Name</span></div><div class='meta-card'><span class='meta-label'>Curriculum</span><span class='meta-value' contenteditable='true'>Inside Passing / Receiving</span></div><div class='meta-card'><span class='meta-label'>Session</span><span class='meta-value' contenteditable='true'>Saturday (Day 2)</span></div><div class='meta-card'><span class='meta-label'>Venue</span><span class='meta-value' contenteditable='true'>Training Ground</span></div><div class='meta-card'><span class='meta-label'>Date</span><span class='meta-value' contenteditable='true'>11/04/2026</span></div><div class='meta-card'><span class='meta-label'>Time</span><span class='meta-value' contenteditable='true'>9:00 AM</span></div><div class='meta-card'><span class='meta-label'>Age Category</span><span class='meta-value' contenteditable='true'>U12</span></div><div class='meta-card'><span class='meta-label'>Number of Players</span><span class='meta-value' contenteditable='true'>12</span></div><div class='meta-card'><span class='meta-label'>Equipment</span><span class='meta-value' contenteditable='true'>Balls, cones, bibs</span></div></div></div>
+<div class='sec'><div><h2 class='sec-title'><span class='sec-title-main' id='ph1' contenteditable='true'>1. TECHNICAL WARM-UP</span><span class='badge' id='pm1' contenteditable='true'>15 MIN</span></h2><div class='subtitle' id='psh1' contenteditable='true'>Touch Mastery & Transitions</div><div class='txt' id='pv1' contenteditable='true'>• Setup: Random gates scattered across field.
+• Activity: Pass through gates.
+• Condition: First touch away.</div></div><div class='pitch'></div></div>
+<div class='sec'><div><h2 class='sec-title'><span class='sec-title-main' id='ph2' contenteditable='true'>2. ORIENTATION PHASE</span><span class='badge' id='pm2' contenteditable='true'>20 MIN</span></h2><div class='subtitle' id='psh2' contenteditable='true'>Target Transition</div><div class='txt' id='pv2' contenteditable='true'>• Layout: Four triangular gates.
+• Objective: Transition from center zone.
+• Heads up! Scan before ball arrives.</div></div><div class='pitch'></div></div>
+<div class='sec'><div><h2 class='sec-title'><span class='sec-title-main' id='ph3' contenteditable='true'>3. SMALL-SIDED GAME</span><span class='badge' id='pm3' contenteditable='true'>20 MIN</span></h2><div class='subtitle' id='psh3' contenteditable='true'>Conditioned Free Game</div><div class='txt' id='pv3' contenteditable='true'>• Format: 4v4 or 5v5.
+• 2-touch limit.
+• Points for pass and move.</div></div><div class='pitch'></div></div>
+</div>
+</div></div>
+<div id='diagramModal' class='diagram-modal-overlay' role='dialog' aria-modal='true' aria-labelledby='diagramModalTitle'>
+  <div class='diagram-modal'>
+    <div class='diagram-modal-header'>
+      <div class='diagram-modal-title' id='diagramModalTitle'>Edit diagram</div>
+      <button type='button' class='diagram-modal-close' id='diagramModalClose' title='Save & close (Esc)'>Done</button>
+    </div>
+    <div class='diagram-modal-host' id='diagramModalHost'></div>
+    <div class='diagram-modal-help'>Drag to draw arrows &amp; zones · drag yellow handle to bend curved arrows · Delete = remove · Arrow keys = nudge (Shift = 10px) · Ctrl/Cmd+Z = undo</div>
+  </div>
+</div>
+<script>
+function updatePreview(){
+  if(document.activeElement&&document.activeElement.blur)document.activeElement.blur();
+}
+function setupInlineEditing(){
+  document.querySelectorAll('[contenteditable="true"]').forEach(el=>{
+    el.addEventListener('paste',event=>{
+      event.preventDefault();
+      const text=(event.clipboardData||window.clipboardData).getData('text/plain');
+      document.execCommand('insertText',false,text);
+    });
+  });
+  document.addEventListener('input',event=>{
+    const el=event.target;
+    if(!(el instanceof HTMLElement))return;
+    if(!el.matches('[contenteditable="true"]'))return;
+    refreshEditablePlaceholderState(el);
+  });
+  document.addEventListener('focusin',event=>{
+    const el=event.target;
+    if(!(el instanceof HTMLElement))return;
+    if(!el.matches('[contenteditable="true"]'))return;
+    refreshEditablePlaceholderState(el);
+  });
+  document.addEventListener('focusout',event=>{
+    const el=event.target;
+    if(!(el instanceof HTMLElement))return;
+    if(!el.matches('[contenteditable="true"]'))return;
+    refreshEditablePlaceholderState(el);
+  });
+}
+setupInlineEditing();
+function isEditableEffectivelyEmpty(el){
+  if((el.textContent || '').trim())return false;
+  return !el.querySelector('img,svg,canvas,video,iframe,table,hr');
+}
+function refreshEditablePlaceholderState(el){
+  if(!el || !el.dataset.placeholder)return;
+  el.classList.toggle('is-empty',isEditableEffectivelyEmpty(el));
+}
+function assignEditableKeys(){
+  document.querySelectorAll('#pdf [contenteditable="true"]').forEach((el,index)=>{
+    if(!el.dataset.saveKey)el.dataset.saveKey=`editable-${index}`;
+    if(!el.dataset.placeholder){
+      const defaultText=(el.textContent || '').trim();
+      el.dataset.placeholder=defaultText || 'Enter text';
+    }
+    refreshEditablePlaceholderState(el);
+  });
+}
+function getHeaderMetaValue(label){
+  const card=[...document.querySelectorAll('.meta-card')].find(item=>item.querySelector('.meta-label')?.innerText.trim().toLowerCase()===label.toLowerCase());
+  return card?.querySelector('.meta-value')?.innerText.trim() || '';
+}
+function cleanFilePart(value){
+  return (value || '').trim().replace(/[^\w\s-]/g,'').replace(/\s+/g,'-').replace(/-+/g,'-') || 'session';
+}
+function getPdfFileName(){
+  const venue=cleanFilePart(getHeaderMetaValue('Venue'));
+  const session=cleanFilePart(getHeaderMetaValue('Session'));
+  return `${session}-football-session-plan-${venue}.pdf`;
+}
+function prepareDiagramExportScale(beforeRects){
+  return ()=>{};
+}
+function lockPitchSizesForExport(pitches,beforeRects){
+  const restores=[];
+  const beforeSizeMap=new Map((beforeRects || []).map(entry=>[entry.pitch,entry]));
+  pitches.forEach(pitch=>{
+    const oldWidth=pitch.style.width;
+    const oldHeight=pitch.style.height;
+    const oldAspect=pitch.style.aspectRatio;
+    const before=beforeSizeMap.get(pitch);
+    const targetWidth=before?.width || pitch.getBoundingClientRect().width;
+    const targetHeight=before?.height || pitch.getBoundingClientRect().height;
+    if(!targetWidth||!targetHeight)return;
+    pitch.style.width=`${targetWidth}px`;
+    pitch.style.height=`${targetHeight}px`;
+    pitch.style.aspectRatio='auto';
+    restores.push(()=>{
+      pitch.style.width=oldWidth;
+      pitch.style.height=oldHeight;
+      pitch.style.aspectRatio=oldAspect;
+    });
+  });
+  return ()=>restores.reverse().forEach(restore=>restore());
+}
+function preparePitchBackgroundsForExport(pitches){
+  const restores=[];
+  const exportBackground='linear-gradient(135deg,rgba(255,255,255,.10),rgba(255,255,255,0) 42%),linear-gradient(90deg,#3d9f43 0,#3d9f43 26px,#46aa4a 26px,#46aa4a 52px)';
+  pitches.forEach(pitch=>{
+    const oldBackgroundImage=pitch.style.backgroundImage;
+    const oldBackgroundSize=pitch.style.backgroundSize;
+    const oldBackgroundRepeat=pitch.style.backgroundRepeat;
+    const oldBackgroundPosition=pitch.style.backgroundPosition;
+    pitch.style.backgroundImage=exportBackground;
+    pitch.style.backgroundSize='auto,52px 100%';
+    pitch.style.backgroundRepeat='no-repeat,repeat';
+    pitch.style.backgroundPosition='center,0 0';
+    restores.push(()=>{
+      pitch.style.backgroundImage=oldBackgroundImage;
+      pitch.style.backgroundSize=oldBackgroundSize;
+      pitch.style.backgroundRepeat=oldBackgroundRepeat;
+      pitch.style.backgroundPosition=oldBackgroundPosition;
+    });
+  });
+  return ()=>restores.reverse().forEach(restore=>restore());
+}
+async function waitForImagesToLoad(root){
+  const images=[...root.querySelectorAll('img')];
+  const pending=images.map(img=>{
+    if(img.complete)return Promise.resolve();
+    return new Promise(resolve=>{
+      const onDone=()=>{
+        img.removeEventListener('load',onDone);
+        img.removeEventListener('error',onDone);
+        resolve();
+      };
+      img.addEventListener('load',onDone,{once:true});
+      img.addEventListener('error',onDone,{once:true});
+    });
+  });
+  await Promise.all(pending);
+}
+async function downloadPDF(){
+  updatePreview();
+  const {jsPDF}=window.jspdf;
+  const page=document.querySelector('.page');
+  const pitches=[...page.querySelectorAll('.pitch')];
+  const diagramRects=pitches.map(pitch=>{
+    const rect=pitch.getBoundingClientRect();
+    return {pitch,width:rect.width,height:rect.height};
+  });
+  if(selectedArrow)selectedArrow.classList.remove('selected');
+  page.classList.add('export-mode');
+  page.offsetWidth;
+  const restoreDiagramScale=prepareDiagramExportScale(diagramRects);
+  const restorePitchSizes=lockPitchSizesForExport(pitches,diagramRects);
+  const restorePitchBackgrounds=preparePitchBackgroundsForExport(pitches);
+  // Mark sections whose diagram is hidden, then later restore the marker
+  const markedSecs=[];
+  document.querySelectorAll('#pdf .pitch-wrap[data-pdf-hidden="true"]').forEach(wrap=>{
+    const sec=wrap.closest('.sec');
+    if(sec){sec.classList.add('sec-no-pitch');markedSecs.push(sec);}
+  });
+  // Force-hide any heading that's effectively empty so no blank pill renders
+  const hiddenHeadings=[];
+  document.querySelectorAll('#pdf .pitch-heading').forEach(el=>{
+    const txt=(el.textContent||'').replace(/​/g,'').trim();
+    if(!txt){
+      hiddenHeadings.push({el,prev:el.style.display});
+      el.style.display='none';
+    }
+  });
+  try{
+    document.querySelectorAll('#pdf [contenteditable="true"][data-placeholder]').forEach(refreshEditablePlaceholderState);
+    await waitForImagesToLoad(page);
+    const renderAttempts=[
+      {scale:2,format:'PNG',mime:'image/png'},
+      {scale:1.6,format:'PNG',mime:'image/png'},
+      {scale:1.3,format:'JPEG',mime:'image/jpeg'}
+    ];
+    let lastError=null;
+    for(const attempt of renderAttempts){
+      try{
+        const pdf=new jsPDF('p','pt','a4');
+        const pageW=pdf.internal.pageSize.getWidth();
+        const pageH=pdf.internal.pageSize.getHeight();
+        const blocks=[page.querySelector('.header'),...page.querySelectorAll('.sec')].filter(Boolean);
+        let currentY=0;
+        for(let index=0;index<blocks.length;index++){
+          if(index===3&&currentY>0){
+            pdf.addPage();
+            currentY=0;
+          }
+          const block=blocks[index];
+          const canvas=await html2canvas(block,{
+            scale:attempt.scale,
+            backgroundColor:'#ffffff',
+            useCORS:true,
+            allowTaint:false,
+            logging:false,
+            windowWidth:1200,
+            windowHeight:1400
+          });
+          const img=canvas.toDataURL(attempt.mime,0.92);
+          const renderW=pageW;
+          const renderH=canvas.height*renderW/canvas.width;
+          if(currentY>0&&currentY+renderH>pageH){
+            pdf.addPage();
+            currentY=0;
+          }
+          pdf.addImage(img,attempt.format,0,currentY,renderW,renderH);
+          currentY+=renderH;
+        }
+        pdf.save(getPdfFileName());
+        return;
+      }catch(error){
+        lastError=error;
+      }
+    }
+    throw lastError || new Error('PDF export failed.');
+  }catch(error){
+    console.error('PDF export failed:',error);
+    alert(`PDF export failed: ${error && error.message ? error.message : 'Unknown error'}`);
+  }finally{
+    restorePitchBackgrounds();
+    restorePitchSizes();
+    restoreDiagramScale();
+    page.classList.remove('export-mode');
+    markedSecs.forEach(sec=>sec.classList.remove('sec-no-pitch'));
+    hiddenHeadings.forEach(({el,prev})=>{el.style.display=prev||''});
+  }
+}
+</script>
+<script>
+/* =====================================================================
+   Football Session Plan – Diagram Editor (v3)
+
+   Key design choices:
+   • Size-independent storage – items stored as % of pitch, arrows in a
+     fixed SVG viewBox (0..1000). Modal open/close has zero coordinate
+     math, so positions never drift.
+   • Coach-friendly arrow vocabulary – Run / Pass / Dribble / Shot / Curve
+     / Line (mirrors soccerdrive.com).
+   • Zone tool with popover – click a zone size button to choose Solid or
+     Dashed border before drawing.
+   • Mobile-first toolbar – column on desktop, wrap-row under the pitch
+     on mobile, 38px+ touch targets everywhere.
+   • Drag-to-draw arrows / zones, undo/redo per pitch, snap-to-grid,
+     keyboard (Delete / Esc / arrows / Ctrl-Z).
+   ===================================================================== */
+
+/* ----- icons ----- */
+const ICON_HAND   = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 11V6a2 2 0 0 1 4 0v5"/><path d="M9 11V4a2 2 0 0 1 4 0v7"/><path d="M13 11V5a2 2 0 0 1 4 0v8"/><path d="M17 9a2 2 0 0 1 4 0v6a7 7 0 0 1-14 0V9a2 2 0 0 1 4 0"/></svg>';
+const ICON_DELETE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/></svg>';
+const ICON_CLEAR  = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>';
+const ICON_UNDO   = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 14 4 9 9 4"/><path d="M20 20v-7a4 4 0 0 0-4-4H4"/></svg>';
+const ICON_REDO   = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 14 20 9 15 4"/><path d="M4 20v-7a4 4 0 0 1 4-4h12"/></svg>';
+const ICON_SNAP   = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9h18"/><path d="M3 15h18"/><path d="M9 3v18"/><path d="M15 3v18"/></svg>';
+const ICON_EDIT   = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h4l11-11-4-4L3 17v4z"/><path d="M14 6l4 4"/></svg>';
+const ICON_LOCK_OPEN   = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0"/></svg>';
+const ICON_LOCK_CLOSED = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>';
+const ICON_PDF_INCLUDE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg>';
+const ICON_PDF_SKIP    = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>';
+
+const ICON_ZONE_SMALL_SOLID  = '<svg viewBox="0 0 28 28" fill="none"><rect x="7" y="7" width="14" height="14" stroke="currentColor" stroke-width="2.4"/></svg>';
+const ICON_ZONE_SMALL_DASHED = '<svg viewBox="0 0 28 28" fill="none"><rect x="7" y="7" width="14" height="14" stroke="currentColor" stroke-width="2.4" stroke-dasharray="3 3"/></svg>';
+const ICON_ZONE_LARGE_SOLID  = '<svg viewBox="0 0 28 28" fill="none"><rect x="4" y="4" width="20" height="20" stroke="currentColor" stroke-width="2.4"/></svg>';
+const ICON_ZONE_LARGE_DASHED = '<svg viewBox="0 0 28 28" fill="none"><rect x="4" y="4" width="20" height="20" stroke="currentColor" stroke-width="2.4" stroke-dasharray="3 3"/></svg>';
+const ICON_ZONE_GENERIC      = '<svg viewBox="0 0 28 28" fill="none"><rect x="6" y="6" width="16" height="16" stroke="currentColor" stroke-width="2.4" stroke-dasharray="3 3"/><path d="M22 22 l4 4 M22 26 h4 v-4" stroke="currentColor" stroke-width="1.6"/></svg>';
+
+const ICON_LINE   = '<svg viewBox="0 0 28 28" fill="none"><path d="M5 23 L23 5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>';
+const ICON_RUN    = '<svg viewBox="0 0 28 28" fill="none"><path d="M5 23 L20 8" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><path d="M13 5 L23 5 L23 15 Z" fill="currentColor" stroke="currentColor" stroke-width="1" stroke-linejoin="round"/></svg>';
+const ICON_PASS   = '<svg viewBox="0 0 28 28" fill="none"><path d="M5 23 L20 8" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-dasharray="3.5 3"/><path d="M13 5 L23 5 L23 15 Z" fill="currentColor" stroke="currentColor" stroke-width="1" stroke-linejoin="round"/></svg>';
+const ICON_DRIBBLE= '<svg viewBox="0 0 28 28" fill="none"><path d="M5 23 Q8 17 12 20 Q16 23 19 17 Q22 11 25 13" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M16 9 L25 13 L21 21 Z" fill="currentColor" stroke="currentColor" stroke-width="1" stroke-linejoin="round"/></svg>';
+const ICON_CURVE  = '<svg viewBox="0 0 28 28" fill="none"><path d="M5 23 Q3 9 22 8" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" fill="none"/><path d="M14 3 L24 6 L21 15 Z" fill="currentColor" stroke="currentColor" stroke-width="1" stroke-linejoin="round"/></svg>';
+const ICON_CURVE_DASHED = '<svg viewBox="0 0 28 28" fill="none"><path d="M5 23 Q3 9 22 8" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" fill="none" stroke-dasharray="3 3"/><path d="M14 3 L24 6 L21 15 Z" fill="currentColor" stroke="currentColor" stroke-width="1" stroke-linejoin="round"/></svg>';
+
+const ICON_PLAYER1 = '<svg viewBox="0 0 28 28"><circle cx="14" cy="14" r="9" fill="#1e3a8a" stroke="#fff" stroke-width="2"/></svg>';
+const ICON_PLAYER2 = '<svg viewBox="0 0 28 28"><circle cx="14" cy="14" r="9" fill="#b91c1c" stroke="#fff" stroke-width="2"/></svg>';
+const ICON_BALL    = '⚽';
+const ICON_CONE    = '<svg viewBox="0 0 28 28"><path d="M14 4 L20 24 H8 Z" fill="#f59e0b" stroke="#b45309" stroke-width="1.2" stroke-linejoin="round"/><rect x="6" y="22" width="16" height="3" rx="1.2" fill="#b45309"/></svg>';
+
+/* Map a unique tool id → arrow style + behaviour */
+const ARROW_STYLE_OF = {
+  line:        'line',
+  run:         'solid',
+  pass:        'dashed',
+  dribble:     'wavy',
+  curve:       'curved',
+  curveDashed: 'curvedDashed'
+};
+
+/* Tool catalogue. The order here is the visual order in the toolbar. */
+const TOOL_CONFIG = [
+  { type: 'hand',    icon: ICON_HAND,    title: 'Select & move (V)',                group: 'mode'    },
+  { type: 'delete',  icon: ICON_DELETE,  title: 'Delete (click items to remove)',   group: 'mode'    },
+  { type: 'clear',   icon: ICON_CLEAR,   title: 'Clear entire diagram',             group: 'mode'    },
+
+  { type: 'undo',    icon: ICON_UNDO,    title: 'Undo (Ctrl/Cmd+Z)',                group: 'history' },
+  { type: 'redo',    icon: ICON_REDO,    title: 'Redo (Ctrl/Cmd+Shift+Z)',          group: 'history' },
+  { type: 'snap',    icon: ICON_SNAP,    title: 'Snap to grid (toggle)',            group: 'history' },
+
+  { type: 'player1', icon: ICON_PLAYER1, title: 'Blue player – click to place',     group: 'players' },
+  { type: 'player2', icon: ICON_PLAYER2, title: 'Red player – click to place',      group: 'players' },
+  { type: 'ball',    icon: ICON_BALL,    title: 'Ball – click to place',            group: 'players' },
+  { type: 'cone',    icon: ICON_CONE,    title: 'Cone – click to place',            group: 'players' },
+
+  { type: 'zoneSmall', icon: ICON_ZONE_SMALL_SOLID, title: 'Small zone – pick solid or dashed', group: 'zones', popover: 'small' },
+  { type: 'zoneLarge', icon: ICON_ZONE_LARGE_SOLID, title: 'Large zone – pick solid or dashed', group: 'zones', popover: 'large' },
+
+  { type: 'line',        icon: ICON_LINE,         title: 'Line (no arrowhead) – drag',                                 group: 'arrows' },
+  { type: 'run',         icon: ICON_RUN,          title: 'Run – solid arrow (drag)',                                   group: 'arrows' },
+  { type: 'pass',        icon: ICON_PASS,         title: 'Pass – dashed arrow (drag)',                                 group: 'arrows' },
+  { type: 'dribble',     icon: ICON_DRIBBLE,      title: 'Dribble – wavy arrow (drag)',                                group: 'arrows' },
+  { type: 'curve',       icon: ICON_CURVE,        title: 'Curved run – drag, then bend yellow handle',                 group: 'arrows' },
+  { type: 'curveDashed', icon: ICON_CURVE_DASHED, title: 'Curved pass – curved + dashed (drag, then bend yellow handle)', group: 'arrows' }
+];
+
+const PLACE_TOOLS = new Set(['player1', 'player2', 'ball', 'cone']);
+const ARROW_TOOLS = new Set(['line', 'run', 'pass', 'dribble', 'curve', 'curveDashed']);
+
+const SNAP_VB = 50;            // 5% of pitch
+const SNAP_PCT = 5;
+const HISTORY_LIMIT = 60;
+const SESSION_STORAGE_KEY = 'kw-session-plan-state-v3';
+
+let activeTool = 'hand';
+let activeZoneSize = '';        // 'square' | 'squareLarge' when in zone-draw mode
+let activeZoneStyle = 'solid';  // 'solid' | 'dashed'
+let selectedArrow = null;
+let selectedSquareItem = null;
+let selectedItem = null;
+let arrowId = 0;
+let suppressSessionSave = false;
+let saveTimer = null;
+let snapEnabled = false;
+let modalActivePitch = null;
+let modalRestoreFn = null;
+let openPopover = null;
+
+const pitchHistories = new WeakMap();
+
+/* =================================================================== */
+/* coordinate helpers                                                   */
+/* =================================================================== */
+
+function clamp(v, mn, mx) { return Math.max(mn, Math.min(mx, v)); }
+function makePoint(x, y) { return { x, y }; }
+
+function eventPxOnPitch(pitch, event) {
+  const rect = pitch.getBoundingClientRect();
+  return makePoint(
+    clamp(event.clientX - rect.left, 0, rect.width),
+    clamp(event.clientY - rect.top,  0, rect.height)
+  );
+}
+
+function pxToVb(pitch, px) {
+  const rect = pitch.getBoundingClientRect();
+  return makePoint(
+    rect.width  > 0 ? (px.x / rect.width)  * 1000 : 0,
+    rect.height > 0 ? (px.y / rect.height) * 1000 : 0
+  );
+}
+
+function pxToPct(pitch, px) {
+  const rect = pitch.getBoundingClientRect();
+  return makePoint(
+    rect.width  > 0 ? (px.x / rect.width)  * 100 : 0,
+    rect.height > 0 ? (px.y / rect.height) * 100 : 0
+  );
+}
+
+function clampVb(p)  { return makePoint(clamp(p.x, 0, 1000), clamp(p.y, 0, 1000)); }
+function clampPct(p) { return makePoint(clamp(p.x, 0, 100),  clamp(p.y, 0, 100));  }
+
+function snapVbMaybe(p)  { return snapEnabled ? makePoint(Math.round(p.x / SNAP_VB)  * SNAP_VB,  Math.round(p.y / SNAP_VB)  * SNAP_VB)  : p; }
+function snapPctMaybe(p) { return snapEnabled ? makePoint(Math.round(p.x / SNAP_PCT) * SNAP_PCT, Math.round(p.y / SNAP_PCT) * SNAP_PCT) : p; }
+
+function isAnyEditableFocused() {
+  const el = document.activeElement;
+  return !!(el && (el.isContentEditable || el.tagName === 'INPUT' || el.tagName === 'TEXTAREA'));
+}
+
+/* =================================================================== */
+/* session save / restore                                                */
+/* =================================================================== */
+
+function getItemTypeFromElement(item) {
+  if (item.classList.contains('player1'))     return 'player1';
+  if (item.classList.contains('player2'))     return 'player2';
+  if (item.classList.contains('ball'))        return 'ball';
+  if (item.classList.contains('cone'))        return 'cone';
+  if (item.classList.contains('squareLarge')) return 'squareLarge';
+  if (item.classList.contains('square'))      return 'square';
+  return '';
+}
+
+function getZoneStyleFromElement(item) {
+  if (item.classList.contains('zone-dashed')) return 'dashed';
+  return 'solid';
+}
+
+function snapshotPitch(pitch) {
+  const heading = pitch.querySelector('.pitch-heading');
+  const items = [...pitch.querySelectorAll('.item')].map(item => ({
+    type:   getItemTypeFromElement(item),
+    style:  getZoneStyleFromElement(item),
+    left:   item.style.left,
+    top:    item.style.top,
+    width:  item.style.width  || '',
+    height: item.style.height || ''
+  })).filter(it => it.type);
+  const arrows = [...pitch.querySelectorAll('.arrow-group')].map(group => ({
+    style: group.dataset.style || 'solid',
+    x1:    group.dataset.x1, y1: group.dataset.y1,
+    x2:    group.dataset.x2, y2: group.dataset.y2,
+    mx:    group.dataset.mx || '',
+    my:    group.dataset.my || ''
+  }));
+  return {
+    heading: heading ? heading.innerHTML : '',
+    locked: pitch.dataset.locked === 'true',
+    pdfHidden: pitch.dataset.pdfHidden === 'true',
+    items, arrows
+  };
+}
+
+function collectSessionState() {
+  const editables = {};
+  document.querySelectorAll('#pdf [contenteditable="true"][data-save-key]').forEach(el => {
+    editables[el.dataset.saveKey] = el.innerHTML;
+  });
+  const diagrams = [...document.querySelectorAll('#pdf .pitch')].map(snapshotPitch);
+  return { format: 'v3', editables, diagrams };
+}
+
+function saveSessionState() {
+  if (suppressSessionSave) return;
+  try { localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(collectSessionState())); } catch (_e) {}
+}
+
+function scheduleSessionSave() {
+  if (suppressSessionSave) return;
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(saveSessionState, 180);
+}
+
+function restorePitchState(pitch, state) {
+  if (!state) return;
+  const heading = pitch.querySelector('.pitch-heading');
+  if (heading) {
+    let h = state.heading || '';
+    // Legacy default placeholder text → treat as empty so empty pill is hidden in PDF
+    if (h.replace(/<[^>]+>/g, '').trim().toUpperCase() === 'DIAGRAM TITLE') h = '';
+    heading.innerHTML = h;
+  }
+  pitch.querySelectorAll('.item').forEach(it => it.remove());
+  const layer = pitch.querySelector('.arrow-layer');
+  if (layer) layer.querySelectorAll('.arrow-group').forEach(g => g.remove());
+
+  const isV3 = state.__v === 3 || (state.items && state.items[0] && typeof state.items[0].left === 'string' && state.items[0].left.endsWith('%'));
+  const pitchRect = pitch.getBoundingClientRect();
+
+  (state.items || []).forEach(({ type, style, left, top, width, height }) => {
+    let lx, ly, w, h;
+    if (typeof left === 'string' && left.endsWith('%')) {
+      lx = parseFloat(left); ly = parseFloat(top);
+    } else {
+      // legacy pixel coords – convert using current pitch rect
+      const lpx = parseFloat(left), tpx = parseFloat(top);
+      if (!Number.isFinite(lpx) || !Number.isFinite(tpx)) return;
+      lx = pitchRect.width  > 0 ? (lpx / pitchRect.width)  * 100 : 50;
+      ly = pitchRect.height > 0 ? (tpx / pitchRect.height) * 100 : 50;
+    }
+    if (typeof width === 'string' && width.endsWith('%')) {
+      w = parseFloat(width); h = parseFloat(height);
+    } else {
+      const wpx = parseFloat(width), hpx = parseFloat(height);
+      w = Number.isFinite(wpx) && pitchRect.width  > 0 ? (wpx / pitchRect.width)  * 100 : null;
+      h = Number.isFinite(hpx) && pitchRect.height > 0 ? (hpx / pitchRect.height) * 100 : null;
+    }
+    if (!Number.isFinite(lx) || !Number.isFinite(ly)) return;
+    makeItem(type, pitch, makePoint(lx, ly), { widthPct: w, heightPct: h, style });
+  });
+
+  (state.arrows || []).forEach(({ style, x1, y1, x2, y2, mx, my }) => {
+    let sx, sy, ex, ey, mxv = NaN, myv = NaN;
+    const sxn = parseFloat(x1), syn = parseFloat(y1), exn = parseFloat(x2), eyn = parseFloat(y2);
+    if (!Number.isFinite(sxn) || !Number.isFinite(syn) || !Number.isFinite(exn) || !Number.isFinite(eyn)) return;
+    if (isV3) {
+      sx = sxn; sy = syn; ex = exn; ey = eyn;
+      if (mx !== '' && mx !== undefined && mx !== null) { mxv = parseFloat(mx); myv = parseFloat(my); }
+    } else {
+      // legacy px → vb
+      sx = (sxn / pitchRect.width)  * 1000;
+      sy = (syn / pitchRect.height) * 1000;
+      ex = (exn / pitchRect.width)  * 1000;
+      ey = (eyn / pitchRect.height) * 1000;
+      if (mx !== '' && mx !== undefined && mx !== null) {
+        const mxpx = parseFloat(mx), mypx = parseFloat(my);
+        if (Number.isFinite(mxpx)) { mxv = (mxpx / pitchRect.width) * 1000; myv = (mypx / pitchRect.height) * 1000; }
+      }
+    }
+    const group = createArrow(pitch, makePoint(sx, sy), style || 'solid', { silent: true });
+    if (Number.isFinite(mxv) && Number.isFinite(myv)) {
+      group.dataset.mx = String(mxv);
+      group.dataset.my = String(myv);
+    }
+    drawArrow(group, makePoint(sx, sy), makePoint(ex, ey));
+  });
+
+  setPitchLocked(pitch, !!state.locked);
+  setPitchPdfHidden(pitch, !!state.pdfHidden);
+}
+
+function restoreSessionState() {
+  let raw = null;
+  try { raw = localStorage.getItem(SESSION_STORAGE_KEY); } catch (_e) {}
+  if (!raw) {
+    // attempt migration from older keys
+    for (const key of ['kw-session-plan-state-v2', 'kw-session-plan-state-v1']) {
+      try {
+        const old = localStorage.getItem(key);
+        if (old) { raw = old; break; }
+      } catch (_e) {}
+    }
+  }
+  if (!raw) return;
+  let state = null;
+  try { state = JSON.parse(raw); } catch (_e) { return; }
+  if (!state) return;
+  suppressSessionSave = true;
+  if (state.editables && typeof state.editables === 'object') {
+    document.querySelectorAll('#pdf [contenteditable="true"][data-save-key]').forEach(el => {
+      if (Object.prototype.hasOwnProperty.call(state.editables, el.dataset.saveKey)) {
+        el.innerHTML = state.editables[el.dataset.saveKey];
+      }
+    });
+  }
+  if (Array.isArray(state.diagrams)) {
+    document.querySelectorAll('#pdf .pitch').forEach((pitch, idx) => {
+      restorePitchState(pitch, state.diagrams[idx]);
+    });
+  }
+  suppressSessionSave = false;
+}
+
+/* =================================================================== */
+/* history (undo / redo)                                                 */
+/* =================================================================== */
+
+function getHistory(pitch) {
+  if (!pitchHistories.has(pitch)) pitchHistories.set(pitch, { undo: [], redo: [] });
+  return pitchHistories.get(pitch);
+}
+
+function pushHistory(pitch) {
+  const h = getHistory(pitch);
+  const snap = snapshotPitch(pitch);
+  const last = h.undo[h.undo.length - 1];
+  if (last && JSON.stringify(last) === JSON.stringify(snap)) return;
+  h.undo.push(snap);
+  if (h.undo.length > HISTORY_LIMIT) h.undo.shift();
+  h.redo.length = 0;
+  updateHistoryButtons(pitch);
+}
+
+function undoPitch(pitch) {
+  const h = getHistory(pitch);
+  if (h.undo.length < 2) return;
+  const cur = h.undo.pop();
+  h.redo.push(cur);
+  applySnapshotSilent(pitch, h.undo[h.undo.length - 1]);
+  updateHistoryButtons(pitch);
+}
+
+function redoPitch(pitch) {
+  const h = getHistory(pitch);
+  if (!h.redo.length) return;
+  const next = h.redo.pop();
+  h.undo.push(next);
+  applySnapshotSilent(pitch, next);
+  updateHistoryButtons(pitch);
+}
+
+function applySnapshotSilent(pitch, snap) {
+  suppressSessionSave = true;
+  clearArrowSelection(); clearSquareSelection(); clearItemSelection();
+  restorePitchState(pitch, snap);
+  suppressSessionSave = false;
+  scheduleSessionSave();
+}
+
+function updateHistoryButtons(pitch) {
+  const wrap = pitch.parentElement;
+  if (!wrap) return;
+  const h = getHistory(pitch);
+  const undoBtn = wrap.querySelector('.pitch-tool[data-tool="undo"]');
+  const redoBtn = wrap.querySelector('.pitch-tool[data-tool="redo"]');
+  if (undoBtn) undoBtn.classList.toggle('disabled', h.undo.length < 2);
+  if (redoBtn) redoBtn.classList.toggle('disabled', h.redo.length === 0);
+}
+
+/* =================================================================== */
+/* tool / cursor                                                          */
+/* =================================================================== */
+
+function setActiveTool(type, pitch, opts = {}) {
+  if (type === 'clear') {
+    if (!pitch || isPitchLocked(pitch)) return;
+    if (confirm('Clear this diagram?')) { clearDiagram(pitch); pushHistory(pitch); }
+    setActiveTool('hand');
+    return;
+  }
+  if (type === 'undo') { if (pitch) undoPitch(pitch); return; }
+  if (type === 'redo') { if (pitch) redoPitch(pitch); return; }
+  if (type === 'snap') {
+    snapEnabled = !snapEnabled;
+    document.querySelectorAll('.pitch').forEach(p => p.classList.toggle('snap-on', snapEnabled));
+    document.querySelectorAll('.pitch-tool[data-tool="snap"]').forEach(b => b.classList.toggle('active', snapEnabled));
+    return;
+  }
+
+  // zoneSmall / zoneLarge open a popover instead of becoming an active tool directly.
+  if (type === 'zoneSmall' || type === 'zoneLarge') {
+    showZonePopover(opts.button, type === 'zoneSmall' ? 'square' : 'squareLarge');
+    return;
+  }
+  if (type === 'zoneSet') {
+    activeTool = 'zoneDraw';
+    activeZoneSize  = opts.size  || 'square';
+    activeZoneStyle = opts.style || 'solid';
+    closePopover();
+    highlightActiveTool(opts.size === 'squareLarge' ? 'zoneLarge' : 'zoneSmall');
+    refreshPitchCursors();
+    return;
+  }
+
+  activeTool = type;
+  if (type === 'hand' || type === 'delete') {
+    clearArrowSelection(); clearSquareSelection(); clearItemSelection();
+  }
+  highlightActiveTool(type);
+  refreshPitchCursors();
+}
+
+function highlightActiveTool(type) {
+  document.querySelectorAll('.pitch-tool').forEach(btn => {
+    if (btn.dataset.tool === 'snap') return;
+    btn.classList.toggle('active', btn.dataset.tool === type);
+  });
+}
+
+function refreshPitchCursors() {
+  document.querySelectorAll('.pitch').forEach(p => {
+    p.classList.toggle('placing', PLACE_TOOLS.has(activeTool) || activeTool === 'zoneDraw' || ARROW_TOOLS.has(activeTool));
+    p.classList.toggle('deleting', activeTool === 'delete');
+  });
+}
+
+function isPitchLocked(pitch) { return pitch?.dataset.locked === 'true'; }
+
+function setPitchLocked(pitch, locked) {
+  if (!pitch) return;
+  pitch.dataset.locked = locked ? 'true' : 'false';
+  const title = pitch.querySelector('.pitch-heading');
+  if (title) {
+    title.contentEditable = locked ? 'false' : 'true';
+    title.style.opacity = locked ? '0.92' : '';
+  }
+  const lockButton = pitch.parentElement?.querySelector('.lock-toggle');
+  if (lockButton) {
+    lockButton.classList.toggle('active', locked);
+    lockButton.title = locked ? 'Unlock diagram' : 'Lock diagram';
+    lockButton.innerHTML = locked ? ICON_LOCK_CLOSED : ICON_LOCK_OPEN;
+  }
+}
+
+function isPitchPdfHidden(pitch) { return pitch?.dataset.pdfHidden === 'true'; }
+
+function setPitchPdfHidden(pitch, hidden) {
+  if (!pitch) return;
+  pitch.dataset.pdfHidden = hidden ? 'true' : 'false';
+  const wrap = pitch.parentElement;
+  if (wrap && wrap.classList.contains('pitch-wrap')) {
+    wrap.dataset.pdfHidden = hidden ? 'true' : 'false';
+  }
+  const btn = wrap?.querySelector('.pdf-toggle');
+  if (btn) {
+    btn.classList.toggle('active', hidden);
+    btn.title = hidden ? 'Skipped from PDF — click to include' : 'Included in PDF — click to skip';
+    btn.innerHTML = hidden ? ICON_PDF_SKIP : ICON_PDF_INCLUDE;
+  }
+  // Inline badge so the user can see the diagram is going to be skipped
+  let badge = pitch.querySelector(':scope > .pitch-skip-badge');
+  if (hidden) {
+    if (!badge) {
+      badge = document.createElement('div');
+      badge.className = 'pitch-skip-badge';
+      badge.textContent = 'Hidden from PDF';
+      pitch.appendChild(badge);
+    }
+  } else if (badge) {
+    badge.remove();
+  }
+  scheduleSessionSave();
+}
+
+/* =================================================================== */
+/* popover (zone style picker)                                           */
+/* =================================================================== */
+
+function closePopover() {
+  if (openPopover) { openPopover.remove(); openPopover = null; }
+}
+
+function showZonePopover(buttonEl, size) {
+  closePopover();
+  if (!buttonEl) return;
+  const pop = document.createElement('div');
+  pop.className = 'tool-popover';
+  pop.setAttribute('role', 'menu');
+  const variants = [
+    { style: 'solid',  label: 'Solid',  icon: size === 'squareLarge' ? ICON_ZONE_LARGE_SOLID  : ICON_ZONE_SMALL_SOLID  },
+    { style: 'dashed', label: 'Dashed', icon: size === 'squareLarge' ? ICON_ZONE_LARGE_DASHED : ICON_ZONE_SMALL_DASHED }
+  ];
+  variants.forEach(({ style, label, icon }) => {
+    const opt = document.createElement('button');
+    opt.type = 'button';
+    opt.className = 'tool-popover-item';
+    opt.innerHTML = icon + `<span class="tool-popover-label">${label}</span>`;
+    opt.title = `${size === 'squareLarge' ? 'Large' : 'Small'} ${label} zone`;
+    opt.addEventListener('click', e => {
+      e.stopPropagation();
+      const pitch = buttonEl.closest('.pitch-wrap')?.querySelector('.pitch');
+      setActiveTool('zoneSet', pitch, { size, style, button: buttonEl });
+    });
+    pop.appendChild(opt);
+  });
+  document.body.appendChild(pop);
+  positionPopover(pop, buttonEl);
+  openPopover = pop;
+  // Dismiss on outside click
+  setTimeout(() => {
+    document.addEventListener('pointerdown', popoverOutsideHandler, { once: true });
+  }, 0);
+}
+
+function popoverOutsideHandler(event) {
+  if (!openPopover) return;
+  if (event.target.closest('.tool-popover') || event.target.closest('[data-tool="zoneSmall"], [data-tool="zoneLarge"]')) {
+    document.addEventListener('pointerdown', popoverOutsideHandler, { once: true });
+    return;
+  }
+  closePopover();
+}
+
+function positionPopover(pop, buttonEl) {
+  const rect = buttonEl.getBoundingClientRect();
+  const popRect = pop.getBoundingClientRect();
+  let top = rect.top + window.scrollY;
+  let left = rect.right + 8 + window.scrollX;
+  // Flip below if not enough room to the right
+  if (rect.right + popRect.width + 16 > window.innerWidth) {
+    left = rect.left + window.scrollX;
+    top = rect.bottom + 6 + window.scrollY;
+  }
+  pop.style.top  = `${top}px`;
+  pop.style.left = `${left}px`;
+}
+
+/* =================================================================== */
+/* toolbar                                                                 */
+/* =================================================================== */
+
+function makeToolButton(cfg, pitch) {
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'pitch-tool';
+  button.dataset.tool = cfg.type;
+  button.title = cfg.title;
+  if (cfg.popover) button.classList.add('has-popover');
+  if (cfg.type === 'snap') button.classList.add('snap-toggle');
+  if (typeof cfg.icon === 'string' && cfg.icon.trim().startsWith('<svg')) button.innerHTML = cfg.icon;
+  else button.textContent = cfg.icon;
+  button.addEventListener('click', e => {
+    e.stopPropagation();
+    setActiveTool(cfg.type, pitch, { button });
+  });
+  return button;
+}
+
+function createToolbar(pitch) {
+  // Right column = utility/mode/history. Bottom row = drawing palette.
+  const rightBar = document.createElement('div');
+  rightBar.className = 'pitch-toolbar pitch-toolbar-right';
+
+  const bottomBar = document.createElement('div');
+  bottomBar.className = 'pitch-toolbar pitch-toolbar-bottom';
+
+  // Top of right column: Edit + Lock side-by-side
+  const topRow = document.createElement('div');
+  topRow.className = 'pitch-toolbar-top';
+  const editBtn = document.createElement('button');
+  editBtn.type = 'button';
+  editBtn.className = 'pitch-tool edit-btn';
+  editBtn.title = 'Open large editor';
+  editBtn.innerHTML = ICON_EDIT;
+  editBtn.addEventListener('click', e => { e.stopPropagation(); openDiagramModal(pitch); });
+  topRow.appendChild(editBtn);
+
+  const lockButton = document.createElement('button');
+  lockButton.type = 'button';
+  lockButton.className = 'pitch-tool lock-toggle';
+  lockButton.title = 'Lock diagram';
+  lockButton.innerHTML = ICON_LOCK_OPEN;
+  lockButton.addEventListener('click', e => { e.stopPropagation(); setPitchLocked(pitch, !isPitchLocked(pitch)); });
+  topRow.appendChild(lockButton);
+
+  const pdfBtn = document.createElement('button');
+  pdfBtn.type = 'button';
+  pdfBtn.className = 'pitch-tool pdf-toggle';
+  pdfBtn.title = 'Include in PDF — click to skip';
+  pdfBtn.innerHTML = ICON_PDF_INCLUDE;
+  pdfBtn.addEventListener('click', e => {
+    e.stopPropagation();
+    setPitchPdfHidden(pitch, !isPitchPdfHidden(pitch));
+  });
+  topRow.appendChild(pdfBtn);
+
+  rightBar.appendChild(topRow);
+
+  const RIGHT_GROUPS  = new Set(['mode', 'history']);
+  const BOTTOM_GROUPS = new Set(['players', 'zones', 'arrows']);
+
+  let lastRightGroup = null;
+  let lastBottomGroup = null;
+  TOOL_CONFIG.forEach(cfg => {
+    if (RIGHT_GROUPS.has(cfg.group)) {
+      if (lastRightGroup !== null && cfg.group !== lastRightGroup) {
+        const sep = document.createElement('div');
+        sep.className = 'tool-sep';
+        rightBar.appendChild(sep);
+      }
+      rightBar.appendChild(makeToolButton(cfg, pitch));
+      lastRightGroup = cfg.group;
+    } else if (BOTTOM_GROUPS.has(cfg.group)) {
+      if (lastBottomGroup !== null && cfg.group !== lastBottomGroup) {
+        const sep = document.createElement('div');
+        sep.className = 'tool-sep tool-sep-vert';
+        bottomBar.appendChild(sep);
+      }
+      bottomBar.appendChild(makeToolButton(cfg, pitch));
+      lastBottomGroup = cfg.group;
+    }
+  });
+  return { rightBar, bottomBar };
+}
+
+/* =================================================================== */
+/* items                                                                   */
+/* =================================================================== */
+
+function clearDiagram(pitch) {
+  if (!pitch) return;
+  if (selectedArrow && pitch.contains(selectedArrow)) selectedArrow = null;
+  if (selectedSquareItem && pitch.contains(selectedSquareItem)) selectedSquareItem = null;
+  if (selectedItem && pitch.contains(selectedItem)) selectedItem = null;
+  pitch.querySelectorAll('.item').forEach(item => item.remove());
+  pitch.querySelectorAll('.arrow-group').forEach(g => g.remove());
+}
+
+function attachItemDrag(item, pitch) {
+  let dragging = false;
+  let resizing = false;
+  let startEvent = null;
+  let startSizePct = { w: 0, h: 0 };
+  let startPosPct = { x: 0, y: 0 };
+  let movedSinceDown = false;
+
+  const stopDrag = (event) => {
+    const wasMoving = dragging || resizing;
+    dragging = false; resizing = false;
+    item.classList.remove('dragging');
+    if (event && item.hasPointerCapture(event.pointerId)) item.releasePointerCapture(event.pointerId);
+    if (wasMoving && movedSinceDown) pushHistory(pitch);
+  };
+
+  const onMove = (event) => {
+    if (!dragging && !resizing) return;
+    event.preventDefault();
+    movedSinceDown = true;
+    const rect = pitch.getBoundingClientRect();
+    if (resizing) {
+      const dxPx = event.clientX - startEvent.clientX;
+      const dyPx = event.clientY - startEvent.clientY;
+      const dwPct = (dxPx / rect.width)  * 100;
+      const dhPct = (dyPx / rect.height) * 100;
+      let nw = clamp(startSizePct.w + dwPct, 4, 100);
+      let nh = clamp(startSizePct.h + dhPct, 4, 100);
+      if (snapEnabled) {
+        nw = Math.max(SNAP_PCT, Math.round(nw / SNAP_PCT) * SNAP_PCT);
+        nh = Math.max(SNAP_PCT, Math.round(nh / SNAP_PCT) * SNAP_PCT);
+      }
+      item.style.width  = `${nw}%`;
+      item.style.height = `${nh}%`;
+      return;
+    }
+    const px = eventPxOnPitch(pitch, event);
+    let pct = pxToPct(pitch, px);
+    pct = clampPct(snapPctMaybe(pct));
+    item.style.left = `${pct.x}%`;
+    item.style.top  = `${pct.y}%`;
+  };
+
+  item.addEventListener('pointerdown', (event) => {
+    event.stopPropagation();
+    if (isPitchLocked(pitch)) return;
+    if (activeTool === 'delete') {
+      item.remove(); pushHistory(pitch); return;
+    }
+    movedSinceDown = false;
+    const isSquare = item.classList.contains('square') || item.classList.contains('squareLarge');
+    if (isSquare) selectSquareItem(item); else selectItem(item);
+    const resizeHandle = event.target.closest('.resize-handle');
+    if (resizeHandle && isSquare) {
+      resizing = true;
+      startEvent = { clientX: event.clientX, clientY: event.clientY };
+      startSizePct = {
+        w: parseFloat(item.style.width)  || 20,
+        h: parseFloat(item.style.height) || 20
+      };
+      item.classList.add('dragging');
+      item.setPointerCapture(event.pointerId);
+      return;
+    }
+    dragging = true;
+    item.classList.add('dragging');
+    item.setPointerCapture(event.pointerId);
+  });
+  item.addEventListener('pointermove', onMove);
+  item.addEventListener('pointerup', stopDrag);
+  item.addEventListener('pointercancel', stopDrag);
+  item.addEventListener('lostpointercapture', stopDrag);
+  item.addEventListener('dblclick', (event) => {
+    event.stopPropagation();
+    if (isPitchLocked(pitch)) return;
+    item.remove(); pushHistory(pitch);
+  });
+}
+
+const CONE_SVG = '<svg viewBox="0 0 16 16" preserveAspectRatio="xMidYMid meet"><path d="M8 1.5 L13 14 H3 Z" fill="#f59e0b" stroke="#b45309" stroke-width="1" stroke-linejoin="round"/><path d="M5 11 H11" stroke="#fff" stroke-width="0.8"/><rect x="2" y="13.4" width="12" height="1.6" rx="0.6" fill="#7c2d12"/></svg>';
+const BALL_SVG = ICON_BALL;
+
+function makeItem(type, pitch, posPct, sizeData = {}) {
+  const item = document.createElement('div');
+  item.className = `item ${type}`;
+  item.style.left = `${posPct.x}%`;
+  item.style.top  = `${posPct.y}%`;
+  if (type === 'cone') item.innerHTML = CONE_SVG;
+  if (type === 'ball') item.textContent = BALL_SVG;
+  if (type === 'square' || type === 'squareLarge') {
+    const defaultPct = type === 'squareLarge' ? 32 : 22;
+    let w = Number.isFinite(sizeData.widthPct)  ? sizeData.widthPct  : defaultPct;
+    let h = Number.isFinite(sizeData.heightPct) ? sizeData.heightPct : defaultPct;
+    w = Math.max(4, Math.min(100, w));
+    h = Math.max(4, Math.min(100, h));
+    item.style.width  = `${w}%`;
+    item.style.height = `${h}%`;
+    item.classList.add(sizeData.style === 'dashed' ? 'zone-dashed' : 'zone-solid');
+    const handle = document.createElement('div');
+    handle.className = 'resize-handle';
+    handle.title = 'Resize zone';
+    item.appendChild(handle);
+  }
+  pitch.appendChild(item);
+  attachItemDrag(item, pitch);
+  return item;
+}
+
+/* =================================================================== */
+/* arrows (vector + viewBox)                                             */
+/* =================================================================== */
+
+function svgEl(name) { return document.createElementNS('http://www.w3.org/2000/svg', name); }
+
+function drawArrow(group, start, end) {
+  const hit         = group.querySelector('.arrow-hit');
+  const path        = group.querySelector('.arrow-path');
+  const corner      = group.querySelector('.arrow-corner');
+  const startHandle = group.querySelector('.start-handle');
+  const endHandle   = group.querySelector('.end-handle');
+  const midHandle   = group.querySelector('.arrow-mid-handle');
+  const style       = group.dataset.style || 'solid';
+  const isPreview   = group.classList.contains('arrow-preview');
+
+  let dx = end.x - start.x;
+  let dy = end.y - start.y;
+  let length = Math.hypot(dx, dy);
+  if (!isPreview) {
+    const minLen = 60; // vb units (~6% of pitch)
+    if (length < minLen) {
+      const ux = length > 0 ? dx / length : 1;
+      const uy = length > 0 ? dy / length : 0;
+      end = makePoint(start.x + ux * minLen, start.y + uy * minLen);
+      dx = end.x - start.x; dy = end.y - start.y; length = minLen;
+    }
+  }
+
+  group.dataset.x1 = String(start.x); group.dataset.y1 = String(start.y);
+  group.dataset.x2 = String(end.x);   group.dataset.y2 = String(end.y);
+
+  const ux = length > 0 ? dx / length : 1;
+  const uy = length > 0 ? dy / length : 0;
+  const nx = -uy, ny = ux;
+
+  // Compute head dimensions first so we can inset the line end to meet the arrowhead's base
+  const headLen = 34;
+  const headHalfWidth = 16;
+  const lineInset = (style === 'line') ? 0 : Math.min(headLen * 0.92, length * 0.5);
+
+  // Compute body-end (where the visible line stops). For curved arrows we use the bezier tangent.
+  const isCurvedStyle = style === 'curved' || style === 'curvedDashed';
+  let mxStored = parseFloat(group.dataset.mx);
+  let myStored = parseFloat(group.dataset.my);
+  let mx, my;
+  if (isCurvedStyle) {
+    if (Number.isFinite(mxStored) && Number.isFinite(myStored)) { mx = mxStored; my = myStored; }
+    else {
+      const offset = clamp(length * 0.28, 60, 200);
+      mx = (start.x + end.x) / 2 + nx * offset;
+      my = (start.y + end.y) / 2 + ny * offset;
+    }
+    group.dataset.mx = String(mx); group.dataset.my = String(my);
+  }
+  let tangentX, tangentY;
+  if (isCurvedStyle) {
+    const tdx = end.x - mx, tdy = end.y - my;
+    const tlen = Math.hypot(tdx, tdy) || 1;
+    tangentX = tdx / tlen; tangentY = tdy / tlen;
+  } else {
+    tangentX = ux; tangentY = uy;
+  }
+  const bodyEnd = { x: end.x - tangentX * lineInset, y: end.y - tangentY * lineInset };
+  let headTangentAngle = Math.atan2(tangentY, tangentX);
+
+  let d = '';
+
+  if (style === 'wavy') {
+    const bdx = bodyEnd.x - start.x;
+    const bdy = bodyEnd.y - start.y;
+    const bLen = Math.hypot(bdx, bdy) || length;
+    const waveAmp = clamp(bLen * 0.04, 8, 20);
+    const waveCount = Math.max(4, Math.round(bLen / 60));
+    const segmentCount = waveCount * 2;
+    // Taper the perpendicular offset to zero over the LAST 2 segments so the
+    // wave ends in a straight tangent that matches the arrowhead direction.
+    const taperFrom = Math.max(0, segmentCount - 2);
+    let wp = `M ${start.x} ${start.y}`;
+    for (let i = 1; i <= segmentCount; i++) {
+      const t0 = (i - 1) / segmentCount;
+      const t1 = i / segmentCount;
+      const tm = (t0 + t1) / 2;
+      const dir = i % 2 === 0 ? -1 : 1;
+      const taper = i > taperFrom ? Math.max(0, 1 - (i - taperFrom) / 2) : 1;
+      const cx = start.x + bdx * tm + nx * waveAmp * dir * taper;
+      const cy = start.y + bdy * tm + ny * waveAmp * dir * taper;
+      const ex = start.x + bdx * t1;
+      const ey = start.y + bdy * t1;
+      wp += ` Q ${cx} ${cy} ${ex} ${ey}`;
+    }
+    d = wp;
+    path.setAttribute('stroke-dasharray', '');
+  } else if (style === 'curved' || style === 'curvedDashed') {
+    if (midHandle) {
+      midHandle.setAttribute('cx', mx);
+      midHandle.setAttribute('cy', my);
+      midHandle.style.display = '';
+    }
+    d = `M ${start.x} ${start.y} Q ${mx} ${my} ${bodyEnd.x} ${bodyEnd.y}`;
+    path.setAttribute('stroke-dasharray', style === 'curvedDashed' ? '5 6' : '');
+  } else if (style === 'dashed') {
+    d = `M ${start.x} ${start.y} L ${bodyEnd.x} ${bodyEnd.y}`;
+    path.setAttribute('stroke-dasharray', '5 6');
+  } else {
+    // solid, line, straight
+    d = `M ${start.x} ${start.y} L ${bodyEnd.x} ${bodyEnd.y}`;
+    path.setAttribute('stroke-dasharray', '');
+  }
+
+  const isCurvedAny = style === 'curved' || style === 'curvedDashed';
+  if (!isCurvedAny && midHandle) midHandle.style.display = 'none';
+
+  hit.setAttribute('d', d);
+  path.setAttribute('d', d);
+
+  if (style === 'line') {
+    corner.setAttribute('d', '');
+    corner.classList.add('no-head');
+  } else {
+    const headD = `M 0 0 L ${-headLen} ${-headHalfWidth} L ${-headLen} ${headHalfWidth} Z`;
+    corner.setAttribute('d', headD);
+    corner.classList.remove('no-head');
+    const angleDeg = headTangentAngle * 180 / Math.PI;
+    corner.setAttribute('transform', `translate(${end.x} ${end.y}) rotate(${angleDeg})`);
+  }
+
+  if (startHandle) { startHandle.setAttribute('cx', start.x); startHandle.setAttribute('cy', start.y); }
+  if (endHandle)   { endHandle.setAttribute('cx', end.x);     endHandle.setAttribute('cy', end.y); }
+}
+
+function selectArrow(group)         { if (selectedArrow && selectedArrow !== group) selectedArrow.classList.remove('selected'); selectedArrow = group; if (selectedArrow) selectedArrow.classList.add('selected'); clearSquareSelection(); clearItemSelection(); }
+function clearArrowSelection()      { if (!selectedArrow) return; selectedArrow.classList.remove('selected'); selectedArrow = null; }
+function selectSquareItem(item)     { if (selectedSquareItem && selectedSquareItem !== item) selectedSquareItem.classList.remove('selected'); selectedSquareItem = item; if (selectedSquareItem) selectedSquareItem.classList.add('selected'); clearItemSelection(); clearArrowSelection(); }
+function clearSquareSelection()     { if (!selectedSquareItem) return; selectedSquareItem.classList.remove('selected'); selectedSquareItem = null; }
+function selectItem(item)           { if (selectedItem && selectedItem !== item) selectedItem.classList.remove('selected'); selectedItem = item; if (selectedItem) selectedItem.classList.add('selected'); clearArrowSelection(); clearSquareSelection(); }
+function clearItemSelection()       { if (!selectedItem) return; selectedItem.classList.remove('selected'); selectedItem = null; }
+
+function createArrow(pitch, startVb, style = 'solid', opts = {}) {
+  const layer = pitch.querySelector('.arrow-layer');
+  const group = svgEl('g');
+  group.classList.add('arrow-group');
+  group.dataset.id = String(++arrowId);
+  group.dataset.style = style;
+
+  const path  = svgEl('path'); path.classList.add('arrow-path');
+  const hit   = svgEl('path'); hit.classList.add('arrow-hit');
+  const corner= svgEl('path'); corner.classList.add('arrow-corner');
+  const sh    = svgEl('circle'); sh.classList.add('arrow-handle', 'start-handle');
+  const eh    = svgEl('circle'); eh.classList.add('arrow-handle', 'end-handle');
+  const mh    = svgEl('circle'); mh.classList.add('arrow-mid-handle');
+  group.append(hit, path, corner, sh, eh, mh);
+  layer.appendChild(group);
+
+  const end = clampVb(makePoint(startVb.x + 140, startVb.y - 140));
+  drawArrow(group, startVb, end);
+  if (!opts.silent) selectArrow(group);
+  attachArrowInteractions(group, pitch);
+  return group;
+}
+
+function attachArrowInteractions(group, pitch) {
+  let mode = '', pointerId = null, lastVb = null, movedSinceDown = false;
+
+  group.addEventListener('pointerdown', (event) => {
+    event.stopPropagation();
+    if (isPitchLocked(pitch)) return;
+    if (activeTool === 'delete') {
+      if (selectedArrow === group) selectedArrow = null;
+      group.remove(); pushHistory(pitch); return;
+    }
+    selectArrow(group);
+    pointerId = event.pointerId;
+    group.setPointerCapture(pointerId);
+    const target = event.target;
+    if (target.classList.contains('start-handle')) mode = 'start';
+    else if (target.classList.contains('end-handle')) mode = 'end';
+    else if (target.classList.contains('arrow-mid-handle')) mode = 'mid';
+    else mode = 'move';
+    lastVb = pxToVb(pitch, eventPxOnPitch(pitch, event));
+    movedSinceDown = false;
+    group.classList.add('dragging');
+  });
+
+  group.addEventListener('pointermove', (event) => {
+    if (pointerId !== event.pointerId || !mode) return;
+    event.preventDefault();
+    movedSinceDown = true;
+    const raw = pxToVb(pitch, eventPxOnPitch(pitch, event));
+    const point = clampVb(snapVbMaybe(raw));
+    const start = makePoint(Number(group.dataset.x1), Number(group.dataset.y1));
+    const end   = makePoint(Number(group.dataset.x2), Number(group.dataset.y2));
+
+    if (mode === 'start') drawArrow(group, point, end);
+    if (mode === 'end')   drawArrow(group, start, point);
+    if (mode === 'mid') {
+      group.dataset.mx = String(raw.x);
+      group.dataset.my = String(raw.y);
+      drawArrow(group, start, end);
+    }
+    if (mode === 'move' && lastVb) {
+      const dx = raw.x - lastVb.x;
+      const dy = raw.y - lastVb.y;
+      const ns = clampVb(makePoint(start.x + dx, start.y + dy));
+      const ne = clampVb(makePoint(end.x + dx,   end.y + dy));
+      if ((group.dataset.style === 'curved' || group.dataset.style === 'curvedDashed') && Number.isFinite(parseFloat(group.dataset.mx))) {
+        group.dataset.mx = String(Number(group.dataset.mx) + dx);
+        group.dataset.my = String(Number(group.dataset.my) + dy);
+      }
+      drawArrow(group, ns, ne);
+      lastVb = raw;
+    }
+  });
+
+  const finish = (event) => {
+    if (event && pointerId !== event.pointerId) return;
+    const wasMode = mode;
+    mode = '';
+    if (group.hasPointerCapture(pointerId)) group.releasePointerCapture(pointerId);
+    pointerId = null;
+    group.classList.remove('dragging');
+    if (wasMode && movedSinceDown) pushHistory(pitch);
+  };
+  group.addEventListener('pointerup', finish);
+  group.addEventListener('pointercancel', finish);
+  group.addEventListener('lostpointercapture', () => { mode = ''; pointerId = null; group.classList.remove('dragging'); });
+
+  group.addEventListener('dblclick', (event) => {
+    event.stopPropagation();
+    if (isPitchLocked(pitch)) return;
+    if (selectedArrow === group) selectedArrow = null;
+    group.remove(); pushHistory(pitch);
+  });
+}
+
+/* =================================================================== */
+/* drag-to-draw                                                            */
+/* =================================================================== */
+
+function startDrawArrow(pitch, downEvent, style) {
+  const startRaw = pxToVb(pitch, eventPxOnPitch(pitch, downEvent));
+  const start = clampVb(snapVbMaybe(startRaw));
+  const layer = pitch.querySelector('.arrow-layer');
+  const group = svgEl('g');
+  group.classList.add('arrow-group', 'arrow-preview');
+  group.dataset.id = String(++arrowId);
+  group.dataset.style = style;
+  const path = svgEl('path'); path.classList.add('arrow-path');
+  const hit  = svgEl('path'); hit.classList.add('arrow-hit');
+  const corner = svgEl('path'); corner.classList.add('arrow-corner');
+  const sh = svgEl('circle'); sh.classList.add('arrow-handle', 'start-handle');
+  const eh = svgEl('circle'); eh.classList.add('arrow-handle', 'end-handle');
+  const mh = svgEl('circle'); mh.classList.add('arrow-mid-handle');
+  group.append(hit, path, corner, sh, eh, mh);
+  layer.appendChild(group);
+  drawArrow(group, start, start);
+
+  const onMove = (e) => {
+    const cur = clampVb(snapVbMaybe(pxToVb(pitch, eventPxOnPitch(pitch, e))));
+    drawArrow(group, start, cur);
+  };
+  const onUp = () => {
+    document.removeEventListener('pointermove', onMove);
+    document.removeEventListener('pointerup', onUp);
+    document.removeEventListener('pointercancel', onUp);
+    group.classList.remove('arrow-preview');
+    const x1 = parseFloat(group.dataset.x1), y1 = parseFloat(group.dataset.y1);
+    const x2 = parseFloat(group.dataset.x2), y2 = parseFloat(group.dataset.y2);
+    const dist = Math.hypot(x2 - x1, y2 - y1);
+    if (dist < 25) {
+      // tiny drag → default visible length (toward upper-right)
+      drawArrow(group, makePoint(x1, y1), clampVb(makePoint(x1 + 160, y1 - 160)));
+    } else {
+      drawArrow(group, makePoint(x1, y1), makePoint(x2, y2));
+    }
+    attachArrowInteractions(group, pitch);
+    selectArrow(group);
+    pushHistory(pitch);
+  };
+  document.addEventListener('pointermove', onMove);
+  document.addEventListener('pointerup', onUp);
+  document.addEventListener('pointercancel', onUp);
+}
+
+function startDrawZone(pitch, downEvent, size, style) {
+  const startRaw = pxToPct(pitch, eventPxOnPitch(pitch, downEvent));
+  const start = clampPct(snapPctMaybe(startRaw));
+  const item = document.createElement('div');
+  item.className = `item ${size} ${style === 'dashed' ? 'zone-dashed' : 'zone-solid'}`;
+  item.style.left = `${start.x}%`;
+  item.style.top  = `${start.y}%`;
+  item.style.width = `0%`;
+  item.style.height = `0%`;
+  const handle = document.createElement('div');
+  handle.className = 'resize-handle';
+  handle.title = 'Resize zone';
+  item.appendChild(handle);
+  pitch.appendChild(item);
+
+  const onMove = (e) => {
+    const cur = clampPct(snapPctMaybe(pxToPct(pitch, eventPxOnPitch(pitch, e))));
+    const dx = cur.x - start.x;
+    const dy = cur.y - start.y;
+    const w = Math.max(2, Math.abs(dx));
+    const h = Math.max(2, Math.abs(dy));
+    item.style.width = `${w}%`;
+    item.style.height = `${h}%`;
+    item.style.left = `${start.x + (dx >= 0 ? w / 2 : -w / 2)}%`;
+    item.style.top  = `${start.y + (dy >= 0 ? h / 2 : -h / 2)}%`;
+  };
+  const onUp = () => {
+    document.removeEventListener('pointermove', onMove);
+    document.removeEventListener('pointerup', onUp);
+    document.removeEventListener('pointercancel', onUp);
+    const w = parseFloat(item.style.width)  || 0;
+    const h = parseFloat(item.style.height) || 0;
+    if (w < 6 || h < 6) {
+      // treat as click → default size
+      const def = size === 'squareLarge' ? 32 : 22;
+      item.style.width  = `${def}%`;
+      item.style.height = `${def}%`;
+    }
+    attachItemDrag(item, pitch);
+    selectSquareItem(item);
+    pushHistory(pitch);
+  };
+  document.addEventListener('pointermove', onMove);
+  document.addEventListener('pointerup', onUp);
+  document.addEventListener('pointercancel', onUp);
+}
+
+/* =================================================================== */
+/* pitch setup                                                             */
+/* =================================================================== */
+
+function setupPitch(pitch) {
+  const wrap = document.createElement('div');
+  wrap.className = 'pitch-wrap';
+  pitch.parentNode.insertBefore(wrap, pitch);
+  const { rightBar, bottomBar } = createToolbar(pitch);
+  wrap.appendChild(pitch);
+  wrap.appendChild(rightBar);
+  wrap.appendChild(bottomBar);
+
+  const title = document.createElement('div');
+  title.className = 'pitch-heading';
+  title.contentEditable = 'true';
+  title.spellcheck = false;
+  title.textContent = '';
+  title.dataset.placeholder = 'Diagram title';
+  title.addEventListener('pointerdown', (event) => event.stopPropagation());
+  pitch.appendChild(title);
+
+  const layer = svgEl('svg');
+  layer.classList.add('arrow-layer');
+  layer.setAttribute('viewBox', '0 0 1000 1000');
+  layer.setAttribute('preserveAspectRatio', 'none');
+  layer.setAttribute('width', '100%');
+  layer.setAttribute('height', '100%');
+  pitch.appendChild(layer);
+
+  pitch.addEventListener('pointerdown', (event) => {
+    if (event.target !== pitch && event.target !== layer) return;
+    if (isPitchLocked(pitch)) return;
+    if (event.button !== undefined && event.button !== 0) return;
+    if (isAnyEditableFocused()) document.activeElement?.blur?.();
+    if (activeTool === 'hand' || activeTool === 'delete') {
+      clearArrowSelection(); clearSquareSelection(); clearItemSelection();
+      return;
+    }
+    const px = eventPxOnPitch(pitch, event);
+    if (PLACE_TOOLS.has(activeTool)) {
+      const pct = clampPct(snapPctMaybe(pxToPct(pitch, px)));
+      makeItem(activeTool, pitch, pct);
+      pushHistory(pitch);
+      return;
+    }
+    if (activeTool === 'zoneDraw') {
+      startDrawZone(pitch, event, activeZoneSize, activeZoneStyle);
+      return;
+    }
+    if (ARROW_TOOLS.has(activeTool)) {
+      startDrawArrow(pitch, event, ARROW_STYLE_OF[activeTool]);
+      return;
+    }
+  });
+
+  setPitchLocked(pitch, false);
+  // seed history
+  const h = getHistory(pitch);
+  if (!h.undo.length) h.undo.push(snapshotPitch(pitch));
+  updateHistoryButtons(pitch);
+}
+
+/* =================================================================== */
+/* modal (full-screen edit) — no coord scaling needed                      */
+/* =================================================================== */
+
+function openDiagramModal(pitch) {
+  if (modalActivePitch) return;
+  const wrap = pitch.parentElement;
+  if (!wrap || !wrap.classList.contains('pitch-wrap')) return;
+  const originalParent = wrap.parentElement;
+  const nextSibling = wrap.nextSibling;
+
+  // Placeholder so the layout doesn't collapse
+  const wrapRect = wrap.getBoundingClientRect();
+  const placeholder = document.createElement('div');
+  placeholder.className = 'pitch-wrap-placeholder';
+  placeholder.style.width  = `${wrapRect.width}px`;
+  placeholder.style.height = `${wrapRect.height}px`;
+  originalParent.insertBefore(placeholder, wrap);
+
+  const host = document.getElementById('diagramModalHost');
+  host.appendChild(wrap);
+  wrap.classList.add('in-modal');
+
+  const titleEl = pitch.querySelector('.pitch-heading');
+  const titleText = (titleEl?.textContent || 'Edit diagram').trim() || 'Edit diagram';
+  document.getElementById('diagramModalTitle').textContent = titleText;
+  document.getElementById('diagramModal').classList.add('open');
+  document.body.classList.add('modal-open');
+  modalActivePitch = pitch;
+
+  modalRestoreFn = () => {
+    wrap.classList.remove('in-modal');
+    if (placeholder.parentElement) placeholder.parentElement.removeChild(placeholder);
+    if (nextSibling && nextSibling.parentElement === originalParent) originalParent.insertBefore(wrap, nextSibling);
+    else originalParent.appendChild(wrap);
+  };
+}
+
+function closeDiagramModal() {
+  if (!modalActivePitch || !modalRestoreFn) return;
+  modalRestoreFn();
+  modalRestoreFn = null;
+  modalActivePitch = null;
+  document.getElementById('diagramModal').classList.remove('open');
+  document.body.classList.remove('modal-open');
+  closePopover();
+}
+
+/* =================================================================== */
+/* keyboard                                                               */
+/* =================================================================== */
+
+function nudgeSelectedVbPct(dxFraction, dyFraction) {
+  // dxFraction/dyFraction are 0..1 — fraction of pitch dimension to nudge by.
+  if (selectedArrow) {
+    const dxVb = dxFraction * 1000;
+    const dyVb = dyFraction * 1000;
+    const start = makePoint(Number(selectedArrow.dataset.x1) + dxVb, Number(selectedArrow.dataset.y1) + dyVb);
+    const end   = makePoint(Number(selectedArrow.dataset.x2) + dxVb, Number(selectedArrow.dataset.y2) + dyVb);
+    if ((selectedArrow.dataset.style === 'curved' || selectedArrow.dataset.style === 'curvedDashed') && Number.isFinite(parseFloat(selectedArrow.dataset.mx))) {
+      selectedArrow.dataset.mx = String(Number(selectedArrow.dataset.mx) + dxVb);
+      selectedArrow.dataset.my = String(Number(selectedArrow.dataset.my) + dyVb);
+    }
+    drawArrow(selectedArrow, clampVb(start), clampVb(end));
+    return true;
+  }
+  const target = selectedSquareItem || selectedItem;
+  if (target) {
+    const dxPct = dxFraction * 100;
+    const dyPct = dyFraction * 100;
+    const lx = parseFloat(target.style.left) + dxPct;
+    const ly = parseFloat(target.style.top)  + dyPct;
+    target.style.left = `${clamp(lx, 0, 100)}%`;
+    target.style.top  = `${clamp(ly, 0, 100)}%`;
+    return true;
+  }
+  return false;
+}
+
+function findPitchOf(node) { return node?.closest?.('.pitch') || null; }
+
+function deleteSelected() {
+  let pitch = null;
+  if (selectedArrow)            { pitch = findPitchOf(selectedArrow);       selectedArrow.remove();      selectedArrow = null; }
+  else if (selectedSquareItem)  { pitch = findPitchOf(selectedSquareItem);  selectedSquareItem.remove(); selectedSquareItem = null; }
+  else if (selectedItem)        { pitch = findPitchOf(selectedItem);        selectedItem.remove();       selectedItem = null; }
+  if (pitch) pushHistory(pitch);
+}
+
+document.addEventListener('keydown', (event) => {
+  if (event.key === 'Escape' && modalActivePitch) {
+    event.preventDefault(); closeDiagramModal(); return;
+  }
+  if (event.key === 'Escape' && openPopover) { closePopover(); return; }
+  if (isAnyEditableFocused()) return;
+  const meta = event.ctrlKey || event.metaKey;
+  if (meta && (event.key === 'z' || event.key === 'Z')) {
+    const pitch = modalActivePitch || findPitchOf(selectedArrow) || findPitchOf(selectedSquareItem) || findPitchOf(selectedItem) || document.querySelector('.pitch');
+    if (!pitch) return;
+    event.preventDefault();
+    if (event.shiftKey) redoPitch(pitch); else undoPitch(pitch);
+    return;
+  }
+  if (meta && (event.key === 'y' || event.key === 'Y')) {
+    const pitch = modalActivePitch || document.querySelector('.pitch');
+    if (!pitch) return;
+    event.preventDefault();
+    redoPitch(pitch);
+    return;
+  }
+  if (event.key === 'Delete' || event.key === 'Backspace') {
+    if (selectedArrow || selectedSquareItem || selectedItem) {
+      event.preventDefault();
+      deleteSelected();
+    }
+    return;
+  }
+  if (event.key === 'Escape') {
+    clearArrowSelection(); clearSquareSelection(); clearItemSelection();
+    return;
+  }
+  // arrow nudge — fraction of pitch (1% normal, 5% with shift)
+  const stepFrac = event.shiftKey ? 0.05 : 0.01;
+  let dx = 0, dy = 0;
+  if (event.key === 'ArrowLeft')  dx = -stepFrac;
+  if (event.key === 'ArrowRight') dx =  stepFrac;
+  if (event.key === 'ArrowUp')    dy = -stepFrac;
+  if (event.key === 'ArrowDown')  dy =  stepFrac;
+  if (dx || dy) {
+    if (nudgeSelectedVbPct(dx, dy)) event.preventDefault();
+  }
+});
+
+/* =================================================================== */
+/* bootstrap                                                              */
+/* =================================================================== */
+
+document.querySelectorAll('.pitch').forEach(setupPitch);
+assignEditableKeys();
+restoreSessionState();
+// Reset history to current state after restore so undo can't go pre-restore
+document.querySelectorAll('.pitch').forEach(p => {
+  const h = getHistory(p);
+  h.undo.length = 0; h.redo.length = 0;
+  h.undo.push(snapshotPitch(p));
+  updateHistoryButtons(p);
+});
+setActiveTool('hand');
+
+const sessionObserver = new MutationObserver(() => scheduleSessionSave());
+sessionObserver.observe(document.getElementById('pdf'), {
+  subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: ['style', 'class']
+});
+
+document.addEventListener('pointerdown', (event) => {
+  if (event.target.closest('.pitch') || event.target.closest('.diagram-modal') || event.target.closest('.tool-popover')) return;
+  clearArrowSelection(); clearSquareSelection(); clearItemSelection();
+});
+
+document.getElementById('diagramModalClose')?.addEventListener('click', () => closeDiagramModal());
+document.getElementById('diagramModal')?.addEventListener('click', (e) => {
+  if (e.target === document.getElementById('diagramModal')) closeDiagramModal();
+});
+
+// Reposition popover on resize/scroll
+window.addEventListener('resize', closePopover);
+window.addEventListener('scroll', closePopover, true);
+</script></body>
+</html>
